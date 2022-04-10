@@ -14,15 +14,17 @@ from ql_api import get_envs, disable_env, post_envs, put_envs
 
 try:
     from notify import send
+#  print('加载了notify')
+except:
+    try:
+        from sendNotify import send
+    #  print('加载了sendNotify')
     except:
-        try:
-            from sendNotify import send
-        except:
-            print('找不到通知文件，没有通知')
-            send = None
+        print('找不到通知文件，没有通知')
+        send = None
             
             
- def pp_id():
+def pp_id():
     cookie = os.environ.get("CFD_COOKIE")
     if cookie.find('pin')!=-1:
         ptpin = re.findall(r"pin=(.*?);", cookie)[0]
