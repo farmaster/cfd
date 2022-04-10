@@ -20,6 +20,22 @@ try:
         except:
             print('找不到通知文件，没有通知')
             send = None
+            
+            
+ def pp_id():
+    cookie = os.environ.get("CFD_COOKIE")
+    if cookie.find('pin')!=-1:
+        ptpin = re.findall(r"pin=(.*?);", cookie)[0]
+        pidpt = ptpin[5:9]
+        newpin = ptpin.replace(pidpt, '****')
+    elif cookie.find('pt_pin')!=-1:
+        ptpin = re.findall(r"pt_pin=(.*?);", cookie)[0]
+        pidpt = ptpin[5:9]
+        newpin = ptpin.replace(pidpt, '****')
+    else:
+        print('CK错误，请重新抓取')
+    return newpin
+
 
 def get_cfd100url():
     cookie = os.environ.get("CFD_COOKIE")
@@ -120,7 +136,7 @@ def cfd_qq(def_start_time):
     if data['iRet'] == 0:
         # 抢到了
         msg = "可能抢到了"
-        send('财富岛抢购通知', u_pin + '已抢到')
+        send('财富岛抢购通知', pp_id() + '已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
     elif data['iRet'] == 2016:
@@ -136,7 +152,7 @@ def cfd_qq(def_start_time):
         pass
     elif data['iRet'] == 2007:
         # 财富值不够
-        send('财富岛抢购通知', u_pin + '已抢到')
+        send('财富岛抢购通知', pp_id() + '已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
     elif data['iRet'] == 9999:
