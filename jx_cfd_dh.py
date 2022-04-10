@@ -12,27 +12,39 @@ from requests import RequestException
 from ql_util import get_random_str
 from ql_api import get_envs, disable_env, post_envs, put_envs
 
-#获取最新的cfd100元链接
-def get_cfd100url():
-    APIurl = 'https://v1.114api.com/jd/cfd'
-    def get_page(url):
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62'
-            }
+try:
+    from notify import send
+    except:
         try:
-            response=requests.get(url,headers=headers)
-            if response.status_code==200:
-                return response.text
-            return None
-        except RequestException:
-            return None
-    text = get_page(APIurl)
-    text1 = json.loads(text)
-    text2 = text1['data']
-    cfd100url = text2['result']
-    return cfd100url
+            from sendNotify import send
+        except:
+            print('找不到通知文件，没有通知')
+            send = None
+
+def get_cfd100url():
+    cookie = 'pt_key=AAJiUEg3ADC5deEPD7p8-jTDk8oKYbKizWOf5ceNaU-5WlShTqjDU_GrnZV4unOXGBuLbq9nkb0; pt_pin=jd_43b99b073e354;'
+    # cookie = os.environ.get("CFD_COOKIE")
+    headers = {
+        "Host": "m.jingxi.com",
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        'referer': 'https://st.jingxi.com/fortune_island/index2.html?ptag=7155.9.47&sceneval=2&sid=6f488e2778fa2db09a39f105577da07w',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62',
+        'cookie': cookie,
+        "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br"
+    }
+    url = 'https://m.jingxi.com/jxbfd/user/ExchangeState?strZone=jxbfd&dwType=2&sceneval=2&g_login_type=1'
+    ret = requests.get(url,headers=headers).json()
+    dwLvl = ret['hongbao'][0]['dwLvl']
+    print(dwLvl)
+    pool = ret['hongbaopool']
+    print(pool)
+    new_url = f'https://m.jingxi.com/jxbfd/user/ExchangePrize?strZone=jxbfd&dwType=3&dwLvl={dwLvl}&ddwPaperMoney=100000&strPoolName={pool}&sceneval=2&g_login_type=1'
+    return new_url
+
 # 默认配置(看不懂代码也勿动)
-cfd_start_time = -0.15
+cfd_start_time = -0.26
 cfd_offset_time = 0.01
 
 # 基础配置勿动
@@ -109,6 +121,7 @@ def cfd_qq(def_start_time):
     if data['iRet'] == 0:
         # 抢到了
         msg = "可能抢到了"
+        send('财富岛抢购通知', u_pin + '已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
     elif data['iRet'] == 2016:
@@ -124,6 +137,7 @@ def cfd_qq(def_start_time):
         pass
     elif data['iRet'] == 2007:
         # 财富值不够
+        send('财富岛抢购通知', u_pin + '已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
     elif data['iRet'] == 9999:
