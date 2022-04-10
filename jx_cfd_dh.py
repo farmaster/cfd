@@ -22,8 +22,7 @@ try:
             send = None
 
 def get_cfd100url():
-    cookie = 'pt_key=AAJiUEg3ADC5deEPD7p8-jTDk8oKYbKizWOf5ceNaU-5WlShTqjDU_GrnZV4unOXGBuLbq9nkb0; pt_pin=jd_43b99b073e354;'
-    # cookie = os.environ.get("CFD_COOKIE")
+    cookie = os.environ.get("CFD_COOKIE")
     headers = {
         "Host": "m.jingxi.com",
         "Accept": "*/*",
