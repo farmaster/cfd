@@ -54,9 +54,7 @@ def get_cfd100url():
     url = 'https://m.jingxi.com/jxbfd/user/ExchangeState?strZone=jxbfd&dwType=2&sceneval=2&g_login_type=1'
     ret = requests.get(url,headers=headers).json()
     dwLvl = ret['hongbao'][0]['dwLvl']
-    print(dwLvl)
     pool = ret['hongbaopool']
-    print(pool)
     new_url = f'https://m.jingxi.com/jxbfd/user/ExchangePrize?strZone=jxbfd&dwType=3&dwLvl={dwLvl}&ddwPaperMoney=100000&strPoolName={pool}&sceneval=2&g_login_type=1'
     return new_url
 
@@ -127,37 +125,33 @@ def cfd_qq(def_start_time):
     # 记录请求时间,发送请求
     t1 = time.time()
     d1 = datetime.datetime.now().strftime("%H:%M:%S.%f")
-    res = requests.get(cfd_url, headers=headers)
+    res = requests.get(cfd_url, headers=headers).json()
     t2 = time.time()
-    # 正则对结果进行提取
-    re_list = pattern_data.search(res.text)
-    # 进行json转换
-    data = json.loads(re_list.group(1))
-    msg = data['sErrMsg']
+    msg = res['sErrMsg']
     # 根据返回值判断
-    if data['iRet'] == 0:
+    if res['iRet'] == 0:
         # 抢到了
         msg = "可能抢到了"
         send('财富岛抢购通知', pp_id() + '已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
-    elif data['iRet'] == 2016:
+    elif res['iRet'] == 2016:
         # 需要减
         start_time = float(u_start_time) - float(cfd_offset_time)
         put_envs(u_start_dist.get('_id'), u_start_dist.get('name'), str(start_time)[:8])
-    elif data['iRet'] == 2013:
+    elif res['iRet'] == 2013:
         # 需要加
         start_time = float(u_start_time) + float(cfd_offset_time)
         put_envs(u_start_dist.get('_id'), u_start_dist.get('name'), str(start_time)[:8])
-    elif data['iRet'] == 1014:
+    elif res['iRet'] == 1014:
         # URL过期
         pass
-    elif data['iRet'] == 2007:
+    elif res['iRet'] == 2007:
         # 财富值不够
         send('财富岛抢购通知', pp_id() + '已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
-    elif data['iRet'] == 9999:
+    elif res['iRet'] == 9999:
         # 账号过期
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
