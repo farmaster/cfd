@@ -22,48 +22,65 @@ except:
     except:
         print('找不到通知文件，没有通知')
         send = None
-            
-            
-def pp_id():
-    cookie = os.environ.get("CFD_COOKIE")
-    if cookie.find('pin')!=-1:
-        ptpin = re.findall(r"pin=(.*?);", cookie)[0]
-        pidpt = ptpin[5:9]
-        newpin = ptpin.replace(pidpt, '****')
-    elif cookie.find('pt_pin')!=-1:
-        ptpin = re.findall(r"pt_pin=(.*?);", cookie)[0]
-        pidpt = ptpin[5:9]
-        newpin = ptpin.replace(pidpt, '****')
+
+
+def qy_push(Content, text, Qid, Agent, secret):
+    qy_url = f'https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid={Qid}&corpsecret={secret}'
+    re_ss = requests.get(qy_url).json()
+    access_token = re_ss['access_token']
+    qy_url = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=" + access_token
+    data = {
+        "touser": "@all",
+        "msgtype": "text",
+        "agentid": Agent,
+        "text": {
+            "content": f'{Content}\n\n{text}'
+        },
+    }
+    re1 = requests.post(url=qy_url, data=json.dumps(data)).json()
+    if re1['errcode'] == 0:
+        print("推送成功")
     else:
-        print('CK错误，请重新抓取')
-    return newpin
+        print("推送失败")
 
 
-def get_cfd100url():
-    cookie = os.environ.get("CFD_COOKIE")
-    headers = {
+def get_cfd100url(ck):
+    hhhh =(datetime.datetime.now() + datetime.timedelta(hours=1)).strftime("%Y-%m-%d %H:00:00")
+    sjt = int(time.mktime(time.strptime(hhhh, "%Y-%m-%d %H:%M:%S")) * 1000)
+    header = {
         "Host": "m.jingxi.com",
         "Accept": "*/*",
         "Connection": "keep-alive",
-        'referer': 'https://st.jingxi.com/fortune_island/index2.html?ptag=7155.9.47&sceneval=2&sid=6f488e2778fa2db09a39f105577da07w',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62',
-        'cookie': cookie,
+        "referer": "https://st.jingxi.com/fortune_island/index2.html?ptag=7155.9.47&sceneval=2&sid"
+                   "=6f488e2778fa2db09a39f105577da07w",
+        "cookie": ck,
+        'user-agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62",
         "Accept-Language": "zh-CN,zh-Hans;q=0.9",
         "Accept-Encoding": "gzip, deflate, br"
     }
     url = 'https://m.jingxi.com/jxbfd/user/ExchangeState?strZone=jxbfd&dwType=2&sceneval=2&g_login_type=1'
-    ret = requests.get(url,headers=headers).json()
-    dwLvl = ret['hongbao'][0]['dwLvl']
-    pool = ret['hongbaopool']
-    new_url = f'https://m.jingxi.com/jxbfd/user/ExchangePrize?strZone=jxbfd&dwType=3&dwLvl={dwLvl}&ddwPaperMoney=100000&strPoolName={pool}&sceneval=2&g_login_type=1'
+    resp = requests.get(url, headers=header, timeout=60).json()
+    try:
+        pool = resp['hongbaopool']
+    except KeyError:
+        print('获取最新url失败')
+    try:
+        dwv = resp['hongbao'][0]['dwLvl']
+        new_url = f'https://m.jingxi.com/jxbfd/user/ExchangePrize?strZone=jxbfd&bizCode=jxbfd&source=jxbfd&dwEnv=7&_cfd_t={sjt}&dwType=3&dwLvl={dwv}&ddwPaperMoney=100000&strPoolName={pool}&sceneval=2&g_login_type=1'
+        print(new_url)
+    except KeyError:
+        print('已黑号')
     return new_url
 
+
 # 默认配置(看不懂代码也勿动)
-cfd_start_time = -0.26
+cfd_start_time = -0.15
 cfd_offset_time = 0.01
 
 # 基础配置勿动
-cfd_url = get_cfd100url()
+ck = os.environ.get("CFD_COOKIE")
+cfd_url = get_cfd100url(ck)
 pattern_pin = re.compile(r'pt_pin=([\w\W]*?);')
 pattern_data = re.compile(r'\(([\w\W]*?)\)')
 
@@ -125,6 +142,7 @@ def cfd_qq(def_start_time):
     # 记录请求时间,发送请求
     t1 = time.time()
     d1 = datetime.datetime.now().strftime("%H:%M:%S.%f")
+    newpin =  u_pin.replace(u_pin[5:9], '****')
     res = requests.get(cfd_url, headers=headers).json()
     t2 = time.time()
     msg = res['sErrMsg']
@@ -132,7 +150,7 @@ def cfd_qq(def_start_time):
     if res['iRet'] == 0:
         # 抢到了
         msg = "可能抢到了"
-        send('财富岛抢购通知', pp_id() + '已抢到')
+        send('财富岛抢购通知', newpin + '已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
     elif res['iRet'] == 2016:
@@ -148,7 +166,7 @@ def cfd_qq(def_start_time):
         pass
     elif res['iRet'] == 2007:
         # 财富值不够
-        send('财富岛抢购通知', pp_id() + '已抢到')
+        send('财富值不够', newpin+ '可能已抢到')
         put_envs(u_cookie.get('_id'), u_cookie.get('name'), u_cookie.get('value'), msg)
         disable_env(u_cookie.get('_id'))
     elif res['iRet'] == 9999:
